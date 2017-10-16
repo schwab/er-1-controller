@@ -61,6 +61,34 @@ class PWDCmd:
     axis = 0        #Always zero
     code = 0x0
     data = [0xCC,0xCC,0xCC,0xCC,0xCC,0xCC]
+    def __init__(self):
+        self.data  = [0xCC,0xCC,0xCC,0xCC,0xCC,0xCC]
+        self.address = self.checksum = self.axis = self.code = 0x0
+
+    def sum_all(self):
+        s = sum([self.address, self.checksum,self.axis, self.code]) + sum(self.get_data())
+        return s
+    def get_data(self):
+        idx = 0
+        for i in range(0, len(self.data)):
+            if not self.data[i] == 0xCC:
+                idx = i -1
+        return self.data[:idx]
+    def str_bytes(self):
+        b = 0
+        bset = [''.join('{:02x}'.format(self.address)),
+        ''.join('{:02x}'.format(self.checksum)),
+        ''.join('{:02x}'.format(self.axis)),
+        ''.join('{:02x}'.format(self.code))] 
+        bset.extend([ "".join('{:20x}'.format(x) for x in self.get_data())])
+        print " ".join(bset)
+        print self.sum_all()
+        return " ".join(bset) + " sum : " + str("{:02x}".format(self.sum_all()))
+    def twos_comp(self, val, bits):
+        """compute the 2's complement of int value val"""
+        if (val & (1 << (bits - 1))) != 0: # if sign bit is set e.g., 8bit: 128-255
+            val = val - (1 << bits)        # compute negative value
+        return -val 
 
 class Pos:
     x = 0.
@@ -91,7 +119,7 @@ class Robot:
     
     def SetCmd2(self, byte1, byte2):
         cmd = PWDCmd()
-        cmd.data = [0xCC,0xCC,0xCC,0xCC,0xCC,0xCC]  #for some reason this gets changed in the class, so always reset to default
+        #cmd.data = [0xCC,0xCC,0xCC,0xCC,0xCC,0xCC]  #for some reason this gets changed in the class, so always reset to default
         cmd.address = byte1
         cmd.code = byte2
         cmd.checksum = ~(byte1 + byte2) + 1
@@ -106,7 +134,7 @@ class Robot:
         cmd.checksum = ~(~(cmd.checksum-1)+ cmd.data[0] + cmd.data[1]) + 1
         if cmd.checksum < 0:
             cmd.checksum += 256
-        return cmd;
+        return cmd
 
     def SetCmd4(self, byte1, byte2, data1, data2):
         cmd = self.SetCmd3(byte1, byte2, data1)
@@ -136,30 +164,31 @@ class Robot:
                 
         if DEBUG:
             print "DEBUG..."
-            bytes = "SENT : "
-            #bytes += str(cmd.address)
-	    bytes += ''.join('{:02x}'.format(cmd.address))
-            bytes += " "
-            #bytes += str(cmd.checksum)
-	    bytes += ''.join('{:02x}'.format(cmd.checksum))
-            bytes += " "
-            #bytes += str(cmd.axis)
-	    bytes += ''.join('{:02x}'.format(cmd.axis))
-            bytes += " "
-	    bytes += ''.join('{:02x}'.format(cmd.code))
-            #bytes += str(cmd.code)
-            bytes += " "
-	    bytes += ''.join('{:02x}'.format(x) for x in cmd.data)		
-            #for b in cmd.data:
-            #    if b < 0:
-            #        b += 256
-            #    bytes += str(b) + " "
-            print bytes
+            print cmd.str_bytes()
+        #    bytes = "SENT : "
+        #    #bytes += str(cmd.address)
+	    #bytes += ''.join('{:02x}'.format(cmd.address))
+        #    bytes += " "
+        #    #bytes += str(cmd.checksum)
+	    #bytes += ''.join('{:02x}'.format(cmd.checksum))
+        #    bytes += " "
+        #    #bytes += str(cmd.axis)
+	    #bytes += ''.join('{:02x}'.format(cmd.axis))
+        #    bytes += " "
+	    #bytes += ''.join('{:02x}'.format(cmd.code))
+        #    #bytes += str(cmd.code)
+        #    bytes += " "
+	    #bytes += ''.join('{:02x}'.format(x) for x in cmd.data)		
+        #    #for b in cmd.data:
+        #    #    if b < 0:
+        #    #        b += 256
+        #    #    bytes += str(b) + " "
+        #    print bytes
             if not NOSEND:
-                newstring = "Reply bytes : ", len(reply)
-                for s in reply:
-                    newstring += str(ord(s)) + " "
-                print "Reply string: ", newstring, "len ", len(newstring)
+                #newstring = "Reply bytes : ", len(reply)
+                #for s in reply:
+                #    newstring += str(ord(s)) + " "
+                print "Reply string: ", [str(ord(x)) for x in reply] , "len ", len(reply)
         return reply
 
     def SendCmd2(self, byte1, byte2):
@@ -253,8 +282,8 @@ class Robot:
         print string
 
     def InitializeRobot(self, PORT):
-        self.ser = serial.Serial(PORT,  250000, )
-        self.ser.baudrate =  250000
+        self.ser = serial.Serial(PORT,  9600, )
+        self.ser.baudrate =  9600
         self.ser.timeout = 0
         #ser.open()
         
