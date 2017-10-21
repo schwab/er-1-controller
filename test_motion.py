@@ -33,5 +33,6 @@ class TestMotion(unittest.TestCase):
         frame_sum = sum(frame) & 0xFF
         print "frame_sum",  '{:02x}'.format(frame_sum)
         self.assertTrue(frame_sum == 0x00)
+        
 if __name__ == "__main__":
     unittest.main()

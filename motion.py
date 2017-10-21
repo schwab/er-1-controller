@@ -57,14 +57,14 @@ def toByte(s):
 
 class PWDCmd:
     address = 0x0
-    checksum = 0x0
+    #checksum = 0x0
     axis = 0        #Always zero
     code = 0x0
     data = [0xCC,0xCC,0xCC,0xCC,0xCC,0xCC]
     def __init__(self):
         self.data  = [0xCC,0xCC,0xCC,0xCC,0xCC,0xCC]
         self.address = self.checksum = self.axis = self.code = 0x0
-
+    
     def sum_all(self):
         s = sum([self.address, self.checksum,self.axis, self.code]) + sum(self.get_data())
         return s
@@ -84,11 +84,21 @@ class PWDCmd:
         print " ".join(bset)
         print self.sum_all()
         return " ".join(bset) + " sum : " + str("{:02x}".format(self.sum_all()))
+
     def twos_comp(self, val, bits):
         """compute the 2's complement of int value val"""
         if (val & (1 << (bits - 1))) != 0: # if sign bit is set e.g., 8bit: 128-255
             val = val - (1 << bits)        # compute negative value
         return -val 
+
+    def get_checksum(self):
+        frame = []
+        frame.append(self.address)
+        frame.append(0)
+        frame.append(self.code) 
+        frame.extend([d for d in self.data if not d == 0xCC])
+        return self.twos_comp(sum(frame), 8)
+
 
 class Pos:
     x = 0.
@@ -122,27 +132,27 @@ class Robot:
         #cmd.data = [0xCC,0xCC,0xCC,0xCC,0xCC,0xCC]  #for some reason this gets changed in the class, so always reset to default
         cmd.address = byte1
         cmd.code = byte2
-        cmd.checksum = ~(byte1 + byte2) + 1
-        if cmd.checksum < 0:
-            cmd.checksum += 256
+        #cmd.checksum = ~(byte1 + byte2) + 1
+        #if cmd.checksum < 0:
+        #    cmd.checksum += 256
         return cmd
 
     def SetCmd3(self, byte1, byte2, data1):
         cmd = self.SetCmd2(byte1, byte2)
         cmd.data[0] = hibyte(data1)
         cmd.data[1] = lobyte(data1)
-        cmd.checksum = ~(~(cmd.checksum-1)+ cmd.data[0] + cmd.data[1]) + 1
-        if cmd.checksum < 0:
-            cmd.checksum += 256
+        #cmd.checksum = ~(~(cmd.checksum-1)+ cmd.data[0] + cmd.data[1]) + 1
+        #if cmd.checksum < 0:
+        #    cmd.checksum += 256
         return cmd
 
     def SetCmd4(self, byte1, byte2, data1, data2):
         cmd = self.SetCmd3(byte1, byte2, data1)
         cmd.data[2] = hibyte(data2)
         cmd.data[3] = lobyte(data2)
-        cmd.checksum = ~(~(cmd.checksum-1)+ cmd.data[2] + cmd.data[3]) + 1
-        if cmd.checksum < 0:
-            cmd.checksum += 256
+        #cmd.checksum = ~(~(cmd.checksum-1)+ cmd.data[2] + cmd.data[3]) + 1
+        #if cmd.checksum < 0:
+        #    cmd.checksum += 256
         return cmd
 
     def SendCmd(self, cmd):
@@ -150,7 +160,7 @@ class Robot:
         if not NOSEND:
             bytes = ""
             bytes += chr(cmd.address)
-            bytes += chr(cmd.checksum)
+            bytes += chr(cmd.get_checksum())
             bytes += chr(cmd.axis)
             bytes += chr(cmd.code)
             for b in cmd.data:
