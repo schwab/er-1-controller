@@ -97,7 +97,7 @@ class PWDCmd:
         frame.append(0)
         frame.append(self.code) 
         frame.extend([d for d in self.data if not d == 0xCC])
-        return self.twos_comp(sum(frame), 8)
+        return self.twos_comp(sum(frame), 8) & 0xFF
 
 
 class Pos:
