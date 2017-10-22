@@ -66,22 +66,19 @@ class PWDCmd:
         self.address = self.checksum = self.axis = self.code = 0x0
     
     def sum_all(self):
-        s = sum([self.address, self.checksum,self.axis, self.code]) + sum(self.get_data())
+        s = sum([self.address, self.get_checksum() ,self.axis, self.code]) + sum(self.get_data())
         return s
     def get_data(self):
-        idx = 0
-        for i in range(0, len(self.data)):
-            if not self.data[i] == 0xCC:
-                idx = i -1
-        return self.data[:idx]
+        return filter(None,[i for i in self.data if not i == 0xCC])
+
     def str_bytes(self):
         b = 0
         bset = [''.join('{:02x}'.format(self.address)),
-        ''.join('{:02x}'.format(self.checksum)),
+        ''.join('{:02x}'.format(self.get_checksum())),
         ''.join('{:02x}'.format(self.axis)),
         ''.join('{:02x}'.format(self.code))] 
-        bset.extend([ "".join('{:20x}'.format(x) for x in self.get_data())])
-        print " ".join(bset)
+        bset.extend([ " ".join('{:02x}'.format(x) for x in self.get_data())])
+        print "Byte length", len(bset)
         print self.sum_all()
         return " ".join(bset) + " sum : " + str("{:02x}".format(self.sum_all()))
 

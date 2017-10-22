@@ -33,6 +33,14 @@ class TestMotion(unittest.TestCase):
         frame_sum = sum(frame) & 0xFF
         print "frame_sum",  '{:02x}'.format(frame_sum)
         self.assertTrue(frame_sum == 0x00)
+    
+    def test_pwdcmd_str_bytes(self):
+        p = PWDCmd()
+        p.address = 0
+        p.axis = 0
+        p.code = 0xff
+        p.data = [0x13, 0x14]
+        print p.str_bytes()
         
 if __name__ == "__main__":
     unittest.main()
