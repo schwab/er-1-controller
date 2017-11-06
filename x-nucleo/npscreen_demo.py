@@ -5,6 +5,9 @@ import glob
 import serial
 import npyscreen
 import logging
+import sys
+#sys.stdout = open('stdout.log', 'w')
+sys.stderr = open('stderr.log', 'w')
 class PortTools(object):
     def port_details(self):
         return serial.tools.list_ports.comports()
