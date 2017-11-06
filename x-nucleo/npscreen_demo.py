@@ -61,9 +61,11 @@ class PortTools(object):
 #
 #        print(ms.get_selected_objects())
 class Options_Form(npyscreen.Form):
+    ports= []
     def create(self):
         self.name = self.add(npyscreen.TitleText, name='Name')
-        self.serialPort = self.add(npyscreen.TitleSelectOne, max_height=4, value=[1,], name="Propeller Port")
+        self.serialPort = self.add(npyscreen.TitleSelectOne, max_height=4, \
+            values=self.ports, value=[1,], name="Propeller Port")
         self.joyStick= self.add(npyscreen.TitleMultiSelect, max_height =-2, value = [1,], name="Enable",
                 values = ["Joystick"], scroll_exit=True)
         self.edit()
@@ -77,7 +79,8 @@ class Controller_Application(npyscreen.NPSAppManaged):
     def onStart(self):
         pt = PortTools()
         self.ports = pt.get_ports()
-        self.addForm('MAIN', Options_Form, name='Options')
+        F = self.addForm('MAIN', Options_Form, name='Options')
+        F.ports = self.ports
         
     def onCleanExit(self):
         if self.port:
