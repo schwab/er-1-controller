@@ -5,6 +5,8 @@ import glob
 import serial
 import npyscreen
 class PortTools(object):
+    def port_details(self):
+        return serial.tools.list_ports.comports()
     def get_ports(self):
         """ Lists serial port names
 
