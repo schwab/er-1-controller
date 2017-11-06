@@ -4,6 +4,7 @@ import sys
 import glob
 import serial
 import npyscreen
+import logging
 class PortTools(object):
     def port_details(self):
         return serial.tools.list_ports.comports()
@@ -62,25 +63,28 @@ class PortTools(object):
 #        print(ms.get_selected_objects())
 class Options_Form(npyscreen.Form):
     ports= []
+        
     def create(self):
-        self.name = self.add(npyscreen.TitleText, name='Name')
+        pt = PortTools()
+        self.ports = pt.get_ports()
+        #self.name = self.add(npyscreen.TitleText, name='Name')
         self.serialPort = self.add(npyscreen.TitleSelectOne, max_height=4, \
             values=self.ports, value=[1,], name="Propeller Port")
         self.joyStick= self.add(npyscreen.TitleMultiSelect, max_height =-2, value = [1,], name="Enable",
                 values = ["Joystick"], scroll_exit=True)
-        self.edit()
+        #self.edit()
 
     def afterEditing(self):
-        print "Editing done. %s  %s" %(self.serialPort.get_value(), self.joyStick.get_value())
+        #print "Editing done. %s  %s" %(self.serialPort.get_value(), self.joyStick.get_value())
         self.parentApp.setNextForm(None)
 
 class Controller_Application(npyscreen.NPSAppManaged):
     port = None
     def onStart(self):
-        pt = PortTools()
-        self.ports = pt.get_ports()
+        #pt = PortTools()
+        #self.ports = pt.get_ports()
         F = self.addForm('MAIN', Options_Form, name='Options')
-        F.ports = self.ports
+        print F.serialPort.get_value()
         
     def onCleanExit(self):
         if self.port:
