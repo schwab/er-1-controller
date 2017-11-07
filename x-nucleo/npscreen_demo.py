@@ -85,7 +85,12 @@ class Motor_Channel(npyscreen.ActionForm, npyscreen.SplitForm, npyscreen.FormWit
             ("Exit Application", self.exit_application, "^X"),
         ])
     def showOption(self):
-        self.parentApp.setNextForm(Options_Form)
+        options = self.parentApp.addForm('OPTIONS', Options_Form, name='Options', lines=25, columns=60)
+        options.show_atx = 1
+        options.show_aty  = 1
+        root.info("Show Options")
+        options.edit()
+        
        
     def connect(self):
         root.info("Connect command received.")
@@ -103,11 +108,11 @@ class Motor_Channel(npyscreen.ActionForm, npyscreen.SplitForm, npyscreen.FormWit
 
 class Controller_Application(npyscreen.NPSAppManaged):
     port = None
-    options = None
+    controller = None
     def onStart(self):
         #pt = PortTools()
         #self.ports = pt.get_ports()
-        self.options = self.addForm('MAIN', Motor_Channel, name='Channel 1', lines=25, columns=40, split_at=7)
+        self.controller = self.addForm('MAIN', Motor_Channel, name='Channel 1', lines=25, columns=60, split_at=7)
         
         
     def onCleanExit(self):
