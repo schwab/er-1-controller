@@ -6,8 +6,12 @@ import serial
 import npyscreen
 import logging
 import sys
+import curses
 #sys.stdout = open('stdout.log', 'w')
 sys.stderr = open('stderr.log', 'w')
+logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
+root = logging.getLogger()
+
 class PortTools(object):
     def port_details(self):
         return serial.tools.list_ports.comports()
@@ -38,58 +42,77 @@ class PortTools(object):
             except (OSError, serial.SerialException):
                 pass
         return result
-#class TestApp(npyscreen.NPSApp):
-#    ports = []
-#    def __init__(self):
-#        pt = PortTools()
-#        self.ports = pt.get_ports()
-#    def main(self):
-#        # These lines create the form and populate it with widgets.
-#        # A fairly complex screen in only 8 or so lines of code - a line for each control.
-#        F  = npyscreen.Form(name = "ER-1 x-nucleo",)
-#        #t  = F.add(npyscreen.TitleText, name = "Text:",)
-#        #fn = F.add(npyscreen.TitleFilename, name = "Filename:")
-#        #fn2 = F.add(npyscreen.TitleFilenameCombo, name="Filename2:")
-#        #dt = F.add(npyscreen.TitleDateCombo, name = "Date:")
-#        #s  = F.add(npyscreen.TitleSlider, out_of=12, name = "Slider")
-#        #ml = F.add(npyscreen.MultiLineEdit,
-#        #       value ="" """try typing here!\nMutiline text, press ^R to reformat.\n""",
-#        #       max_height=5, rely=9)
-#        ms = F.add(npyscreen.TitleSelectOne, max_height=4, value = [1,], name="Propeller Port",
-#                values = self.ports if self.ports else ["<None Found>"], scroll_exit=True)
-#        ms2= F.add(npyscreen.TitleMultiSelect, max_height =-2, value = [1,], name="Enable",
-#                values = ["Joystick"], scroll_exit=True)
-#
-#        # This lets the user interact with the Form.
-#        F.edit()
-#
-#        print(ms.get_selected_objects())
-class Options_Form(npyscreen.Form):
+
+class Options_Form(npyscreen.ActionFormV2WithMenus):
     ports= []
         
     def create(self):
+        self.show_atx = 20
+        self.show_aty = 5
         pt = PortTools()
         self.ports = pt.get_ports()
         #self.name = self.add(npyscreen.TitleText, name='Name')
         self.serialPort = self.add(npyscreen.TitleSelectOne, max_height=4, \
             values=self.ports, value=[1,], name="Propeller Port")
-        self.joyStick= self.add(npyscreen.TitleMultiSelect, max_height =-2, value = [1,], name="Enable",
+        self.joyStick= self.add(npyscreen.TitleMultiSelect, max_height =-2, value = [-1,], name="Enable",
                 values = ["Joystick"], scroll_exit=True)
+        #self.add(npyscreen.MultiLineActionWithShortcuts, max_height=4, value = [1,], name="Pick One", 
+        #    values = ["Option1","Option2","Option3"], scroll_exit=True)
+        menu_root = self.new_menu()
+        menu_root.addItem("test", curses.beep)
         #self.edit()
+    def on_ok(self):
+        root.info("OK selected on Options form, setting values.`")
+    def on_cancel(self):
+        root.info("Cancel selected on Options form, ignoring values.")
+   
+    def afterEditing(self):
+        #print "Editing done. %s  %s" %(self.serialPort.get_value(), self.joyStick.get_value())
+        self.parentApp.setNextForm(None)
 
+class Motor_Channel(npyscreen.ActionForm, npyscreen.SplitForm, npyscreen.FormWithMenus):
+    ports= []
+        
+    def create(self):
+        self.show_atx = 1
+        self.show_aty = 1
+        pt = PortTools()
+        
+        self.m1 = self.add_menu(name="Main Menu", shortcut="m")
+        self.m1.addItemsFromList([
+            ("Options", self.showOption,"^O"),
+            ("Connect", self.connect, "^C"),
+            ("Exit Application", self.exit_application, "^X"),
+        ])
+    def showOption(self):
+        self.parentApp.setNextForm(Options_Form)
+       
+    def connect(self):
+        root.info("Connect command received.")
+   
+    def exit_application(self):
+        curses.beep()
+        self.parentApp.setNextForm(Options_Form)
+        self.editing = False
+        self.parentApp.switchFormNow()
+ 
+   
     def afterEditing(self):
         #print "Editing done. %s  %s" %(self.serialPort.get_value(), self.joyStick.get_value())
         self.parentApp.setNextForm(None)
 
 class Controller_Application(npyscreen.NPSAppManaged):
     port = None
+    options = None
     def onStart(self):
         #pt = PortTools()
         #self.ports = pt.get_ports()
-        F = self.addForm('MAIN', Options_Form, name='Options')
-        print F.serialPort.get_value()
+        self.options = self.addForm('MAIN', Motor_Channel, name='Channel 1', lines=25, columns=40, split_at=7)
+        
         
     def onCleanExit(self):
+        #root.debug("Serial Port selected value : %s", self.options.serialPort.value)
+        #root.debug("Joystic selected value : %s", self.options.joyStick.value)
         if self.port:
             self.port.close()
 
