@@ -2,6 +2,7 @@ import serial
 import binascii
 from sys import stdin
 import time 
+import logging
 
 hold_loop = True
 BAUD = 115200
@@ -54,6 +55,15 @@ except KeyboardInterrupt:
 except Exception as e:
     print e
     ser.close()
+
+class Prop_Serial(object):
+    serial_port = None
+    def __init__(self, port, baud=115200):
+        self.serial_port = serial.Serial(port='/dev/ttyUSB0', baudrate=baud, timeout=.9)
+    def close(self):
+        self.serial_port.close()
+
+
 
 
     

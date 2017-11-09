@@ -45,7 +45,8 @@ class PortTools(object):
 
 class Options_Form(npyscreen.ActionFormV2WithMenus):
     ports= []
-        
+    selected_serial_port = None
+    use_joystick = False
     def create(self):
         self.show_atx = 20
         self.show_aty = 5
@@ -54,57 +55,83 @@ class Options_Form(npyscreen.ActionFormV2WithMenus):
         #self.name = self.add(npyscreen.TitleText, name='Name')
         self.serialPort = self.add(npyscreen.TitleSelectOne, max_height=4, \
             values=self.ports, value=[1,], name="Propeller Port")
-        self.joyStick= self.add(npyscreen.TitleMultiSelect, max_height =-2, value = [-1,], name="Enable",
-                values = ["Joystick"], scroll_exit=True)
+        self.joyStick= self.add(npyscreen.Checkbox, value =False, name="Use Joystick",
+                scroll_exit=True)
         #self.add(npyscreen.MultiLineActionWithShortcuts, max_height=4, value = [1,], name="Pick One", 
         #    values = ["Option1","Option2","Option3"], scroll_exit=True)
         menu_root = self.new_menu()
         menu_root.addItem("test", curses.beep)
         #self.edit()
     def on_ok(self):
-        root.info("OK selected on Options form, setting values.`")
+        if self.serialPort.values:
+            if len(self.serialPort.get_selected_objects()) > 0:
+                self.selected_serial_port = self.serialPort.get_selected_objects()[0]
+            root.info("OK selected on Options form, serialPort values: %s " , self.selected_serial_port)
+        self.use_joystick = self.joyStick.value
+        root.info("OK selected on Options form, joyStick value: %s " , self.use_joystick)
+        self.parentApp.setNextForm("MAIN")
+
     def on_cancel(self):
         root.info("Cancel selected on Options form, ignoring values.")
    
     def afterEditing(self):
-        #print "Editing done. %s  %s" %(self.serialPort.get_value(), self.joyStick.get_value())
-        self.parentApp.setNextForm(None)
+        root.info("Options_Forms Editing done %s .", self.serialPort.values)
+        
+
 
 class Motor_Channel(npyscreen.ActionForm, npyscreen.SplitForm, npyscreen.FormWithMenus):
     ports= []
-        
+    selected_serial_port = None   
+    buffer_1 = ["Welcome"]
+    mode = "INITIAL"
     def create(self):
         self.show_atx = 1
         self.show_aty = 1
         pt = PortTools()
+        self.ports = pt.get_ports()
         
         self.m1 = self.add_menu(name="Main Menu", shortcut="m")
         self.m1.addItemsFromList([
             ("Options", self.showOption,"^O"),
-            ("Connect", self.connect, "^C"),
-            ("Exit Application", self.exit_application, "^X"),
+            ("Connect", self.connect, "C"),
+            ("Exit Application", self.exit_application, "^C"),
         ])
+        self.buffer_pager = self.add(npyscreen.BufferPager, max_height=10)
+        self.refresh_buffer_1()
+    
+    def refresh_buffer_1(self):
+        del self.buffer_1[:]
+
+        if self.mode == "INITIAL":
+            if len(self.ports) == 0:
+                self.buffer_1.append("No serial ports detected (perhaps try running as sudo or admin)")
+            #if not self.selected_serial_port:
+            #    self.buffer_1.append("Select serial port under options (^X)")
+            #else:
+            self.buffer_1.append("Serial Port %s selected, try to connect." % (self.selected_serial_port))
+            self.buffer_pager.clearBuffer()
+            self.buffer_pager.buffer(self.buffer_1)
+
     def showOption(self):
         options = self.parentApp.addForm('OPTIONS', Options_Form, name='Options', lines=25, columns=60)
         options.show_atx = 1
         options.show_aty  = 1
         root.info("Show Options")
         options.edit()
+        if options.selected_serial_port:
+            self.selected_serial_port = options.selected_serial_port
+        self.refresh_buffer_1()
         
-       
+    def exit_application(self):
+        self.parentApp.setNextForm(None)
     def connect(self):
         root.info("Connect command received.")
    
-    def exit_application(self):
-        curses.beep()
-        self.parentApp.setNextForm(Options_Form)
-        self.editing = False
-        self.parentApp.switchFormNow()
- 
-   
+  
     def afterEditing(self):
         #print "Editing done. %s  %s" %(self.serialPort.get_value(), self.joyStick.get_value())
-        self.parentApp.setNextForm(None)
+        root.debug("Switching back to controller form.")
+        #self.parentApp.setNextForm(None)
 
 class Controller_Application(npyscreen.NPSAppManaged):
     port = None
@@ -113,6 +140,7 @@ class Controller_Application(npyscreen.NPSAppManaged):
         #pt = PortTools()
         #self.ports = pt.get_ports()
         self.controller = self.addForm('MAIN', Motor_Channel, name='Channel 1', lines=25, columns=60, split_at=7)
+        self.options = self.addForm('OPTIONS', Options_Form, name='Options', lines=25, columns=60)
         
         
     def onCleanExit(self):

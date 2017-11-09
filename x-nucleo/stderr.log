@@ -1,0 +1,3 @@
+INFO:root:Show Options
+INFO:root:OK selected on Options form, serialPort values: /dev/ttyS4 
+INFO:root:OK selected on Options form, joyStick value: False 
